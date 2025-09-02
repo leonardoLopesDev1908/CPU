@@ -1,4 +1,3 @@
-
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -10,21 +9,12 @@ public class Cpu{
     Lock writeMemory = lock.writeLock();
 
     private RegisterFile registerFile;
-    private Alu alu;
-    private DataMemory dataMemory;
     private int programCounter;
 
     private Memory memory;
     
-    private boolean zeroFlag;
-    private boolean overFlowFlag;
-    private boolean signalFlag;
-    
     public Cpu(){
         programCounter = 0;
-        zeroFlag = false;
-        overFlowFlag = false;
-        signalFlag = false;
     }
 
     public void fetch(){
@@ -47,15 +37,14 @@ public class Cpu{
                 //R-Type
                 int rs = (instruction >> 21) & 0x1F;
                 int rt = (instruction >> 16) & 0x1F;
-                int rd = (instruction >> 11) & 0x1F;
+                int rd = (instruction >> 11) & 0x1F;    
                 shamt = (instruction >> 6) & 0x1F;
                 funct = instruction & 0x3F;
 
                 vl1 = registerFile.readRegisterValue(rs);
                 vl2 = registerFile.readRegisterValue(rt);
-                vl3 = registerFile.readRegisterValue(rd);
 
-                execute(funct, shamt, vl1, vl2, vl3);
+                execute(funct, shamt, vl1, vl2, rd);
             }
             case 2, 3 -> {
                 //J-Type
@@ -76,16 +65,20 @@ public class Cpu{
         }
     }
     
-    public void execute(int funct, int shamt, int a, int b, int c){
+    public void execute(int funct, int shamt, int src1, int src2, int destiny){
+        int result;
+        
         try {
             writeMemory.lock();
             switch(funct){
                 case 0x0001 -> {
-
+                    InstructionSet inst = InstructionSet.ADD;
+                    result = Alu.operate(inst, src1, src2);
                     break;
                 }
                 case 0x0010-> {
-                  
+                    InstructionSet inst = InstructionSet.SUB;
+                    result = Alu.operate(inst, src1, src2);
                     break;
                 }
                 case 0x0011-> {
@@ -111,9 +104,10 @@ public class Cpu{
         } finally {
             writeMemory.unlock();
         }
+        // dataMemory();
     }
     
-    public void dataMemory(){
+    public void dataMemory(int address, int value){
         try {
             writeMemory.lock();
 
